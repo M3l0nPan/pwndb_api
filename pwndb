@@ -1,0 +1,253 @@
+#!/usr/bin/dev python3
+
+"""Python module for making API requests to PWNDB"""
+
+import re
+import time
+import json
+import requests
+import argparse
+import itertools
+import threading
+
+# Declaring the colors available for the program's console output when running
+DEBUG = '\033[95m'
+WARNING = '\033[93m'
+ERROR = '\033[91m'
+ENDC = '\033[0m'
+BOLD = '\033[1m'
+
+ANIMATION = False
+
+EMAIL = None
+LOCALPART = None
+DOMAIN = None
+PASSWORD = None
+
+PROXY = "http://127.0.0.1:9050"
+
+
+def error(message):
+    """Error message on the console output"""
+    return ERROR + "[ERROR] " + ENDC + message
+
+
+def warning(message):
+    """Warning message on the console output"""
+    return WARNING + "[WARNING] " + ENDC + message
+
+
+def debug(message):
+    """Debug message on the console output"""
+    return DEBUG + "[DEBUG] " + ENDC + message
+
+
+def bold(message):
+    """Bold message on the console output"""
+    return BOLD + "[PROGRAM] " + ENDC + message
+
+
+def loading_animation():
+    """Load animation while waiting for VirusTotal response"""
+
+    for character in itertools.cycle(['|', '/', '-', '\\']):
+        if ANIMATION:
+            break
+        print(BOLD + "[PROGRAM] " + ENDC + "Waiting for the query answer " + character, end='\r', flush=True)
+        time.sleep(0.1)
+
+
+def argument_parser():
+    """"Parse argument provided to the script"""
+
+    parser = argparse.ArgumentParser(description='Pwndb API')
+    parser.add_argument("--email", help="email to send to pwndb")
+    parser.add_argument("--domain", type=str, help="Search with just email domain")
+    parser.add_argument("--localpart", type=str, help="Search with just email localpart")
+    parser.add_argument("--password", type=str, help="Search with just a password")
+    parser.add_argument("-p", "--proxy", type=str, help="Tor proxy URL to use (default: http://127.0.0.1:9050)")
+    args = parser.parse_args()
+
+    if args.email and not args.password and not args.localpart and not args.domain:
+        global EMAIL
+        EMAIL = args.email
+
+    elif args.password and not args.email and not args.localpart and not args.domain:
+        global PASSWORD
+        PASSWORD = args.password
+
+    elif args.localpart and not args.password and not args.email and not args.domain:
+        global LOCALPART
+        LOCALPART = args.localpart
+
+    elif args.domain and not args.password and not args.email and not args.localpart:
+        global DOMAIN
+        DOMAIN = args.domain
+
+    else:
+        parser.error("[--email | --localpart | --domain | --password] VALUE is needed")
+        exit(-1)
+
+    if args.proxy:
+        global PROXY
+        PROXY = args.proxy
+
+
+def email_request():
+    """Request with an email"""
+
+    global ANIMATION
+
+    pwndb_url = "http://pwndb2am4tzkvold.onion/"
+    proxy_url = {"http": PROXY}
+
+    email_regex = re.compile(r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)")
+
+    if not re.match(email_regex, EMAIL):
+        print(error("Your argument isn't a valid email"))
+        exit(-1)
+
+    data = {'luser': EMAIL.split('@')[0], 'domain': EMAIL.split('@')[1], 'luseropr': 1, 'domainopr': 1, 'submitform': 'em'}
+
+    animate_thread = threading.Thread(target=loading_animation)
+    animate_thread.start()
+
+    try:
+        response = requests.post(pwndb_url, proxies=proxy_url, data=data)
+    except requests.exceptions.RequestException as request_error:
+        print(error("Problem when sending request to pawndb"))
+        print(error(str(request_error)))
+        ANIMATION = True
+        exit(-1)
+
+    ANIMATION = True
+
+    return response.text
+
+
+def localpart_request():
+    """Request with a localpart"""
+
+    global ANIMATION
+
+    pwndb_url = "http://pwndb2am4tzkvold.onion/"
+    proxy_url = {"http": PROXY}
+
+    data = {'luser': LOCALPART, 'luseropr': 1, 'submitform': 'em'}
+
+    animate_thread = threading.Thread(target=loading_animation)
+    animate_thread.start()
+
+    try:
+        response = requests.post(pwndb_url, proxies=proxy_url, data=data)
+    except requests.exceptions.RequestException as request_error:
+        print(error("Problem when sending request to pwndb"))
+        print(error(str(request_error)))
+        ANIMATION = True
+        exit(-1)
+
+    ANIMATION = True
+
+    return response.text
+
+
+def domain_request():
+    """Request with a localpart"""
+
+    global ANIMATION
+
+    pwndb_url = "http://pwndb2am4tzkvold.onion/"
+    proxy_url = {"http": PROXY}
+
+    data = {'domain': DOMAIN, 'domainopr': 1, 'submitform': 'em'}
+
+    animate_thread = threading.Thread(target=loading_animation)
+    animate_thread.start()
+
+    try:
+        response = requests.post(pwndb_url, proxies=proxy_url, data=data)
+    except requests.exceptions.RequestException as request_error:
+        print(error("Problem when sending request to pwndb"))
+        print(error(str(request_error)))
+        ANIMATION = True
+        exit(-1)
+
+    ANIMATION = True
+
+    return response.text
+
+
+def password_request():
+    """Request with a password"""
+
+    global ANIMATION
+
+    pwndb_url = "http://pwndb2am4tzkvold.onion/"
+    proxy_url = {"http": PROXY}
+
+    data = {'password': PASSWORD, 'submitform': 'pw'}
+
+    animate_thread = threading.Thread(target=loading_animation)
+    animate_thread.start()
+
+    try:
+        response = requests.post(pwndb_url, proxies=proxy_url, data=data)
+    except requests.exceptions.RequestException as request_error:
+        print(error("Problem when sending request to pwndb"))
+        print(error(str(request_error)))
+        ANIMATION = True
+        exit(-1)
+
+    ANIMATION = True
+
+    return response.text
+
+
+def response_parser(response):
+    """Parse pwndb response"""
+
+    results = response.split('Array')
+
+    data = {}
+    data['results'] = []
+
+    for result in results[1:]:
+        data['results'].append(
+            {
+                "id": result.split('[id] => ')[1].split('\n')[0],
+                "email": result.split('[luser] => ')[1].split('\n')[0] + '@' + result.split('[domain] => ')[1].split('\n')[0],
+                "password": result.split('[password] => ')[1].split('\n')[0]
+            }
+        )
+
+    data['found'] = len(data['results'])
+
+    return data
+
+
+def main():
+    """Main program"""
+
+    argument_parser()
+
+    if EMAIL:
+        response = email_request()
+    elif PASSWORD:
+        response = password_request()
+    elif LOCALPART:
+        response = localpart_request()
+    elif DOMAIN:
+        response = domain_request()
+    else:
+        exit(-1)
+
+    data = response_parser(response)
+
+    json_data = json.dumps(data, indent=2, separators=(',', ': '))
+
+    print(json_data)
+    return 0
+
+
+if __name__ == "__main__":
+    main()
