@@ -19,12 +19,14 @@ BOLD = '\033[1m'
 
 ANIMATION = False
 
+# Constants defined when parsing arguments
 EMAIL = None
 LOCALPART = None
 DOMAIN = None
 PASSWORD = None
 
 PROXY = "http://127.0.0.1:9050"
+PWNDB_URL = "http://pwndb2am4tzkvold.onion/"
 
 
 def error(message):
@@ -98,7 +100,6 @@ def email_request():
 
     global ANIMATION
 
-    pwndb_url = "http://pwndb2am4tzkvold.onion/"
     proxy_url = {"http": PROXY}
 
     email_regex = re.compile(r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)")
@@ -113,7 +114,7 @@ def email_request():
     animate_thread.start()
 
     try:
-        response = requests.post(pwndb_url, proxies=proxy_url, data=data)
+        response = requests.post(PWNDB_URL, proxies=proxy_url, data=data)
     except requests.exceptions.RequestException as request_error:
         print(error("Problem when sending request to pawndb"))
         print(error(str(request_error)))
