@@ -131,7 +131,6 @@ def localpart_request():
 
     global ANIMATION
 
-    pwndb_url = "http://pwndb2am4tzkvold.onion/"
     proxy_url = {"http": PROXY}
 
     data = {'luser': LOCALPART, 'luseropr': 1, 'submitform': 'em'}
@@ -140,7 +139,7 @@ def localpart_request():
     animate_thread.start()
 
     try:
-        response = requests.post(pwndb_url, proxies=proxy_url, data=data)
+        response = requests.post(PWNDB_URL, proxies=proxy_url, data=data)
     except requests.exceptions.RequestException as request_error:
         print(error("Problem when sending request to pwndb"))
         print(error(str(request_error)))
@@ -157,7 +156,6 @@ def domain_request():
 
     global ANIMATION
 
-    pwndb_url = "http://pwndb2am4tzkvold.onion/"
     proxy_url = {"http": PROXY}
 
     data = {'domain': DOMAIN, 'domainopr': 1, 'submitform': 'em'}
@@ -166,7 +164,7 @@ def domain_request():
     animate_thread.start()
 
     try:
-        response = requests.post(pwndb_url, proxies=proxy_url, data=data)
+        response = requests.post(PWNDB_URL, proxies=proxy_url, data=data)
     except requests.exceptions.RequestException as request_error:
         print(error("Problem when sending request to pwndb"))
         print(error(str(request_error)))
@@ -183,7 +181,6 @@ def password_request():
 
     global ANIMATION
 
-    pwndb_url = "http://pwndb2am4tzkvold.onion/"
     proxy_url = {"http": PROXY}
 
     data = {'password': PASSWORD, 'submitform': 'pw'}
@@ -192,7 +189,7 @@ def password_request():
     animate_thread.start()
 
     try:
-        response = requests.post(pwndb_url, proxies=proxy_url, data=data)
+        response = requests.post(PWNDB_URL, proxies=proxy_url, data=data)
     except requests.exceptions.RequestException as request_error:
         print(error("Problem when sending request to pwndb"))
         print(error(str(request_error)))
