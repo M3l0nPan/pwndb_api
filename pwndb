@@ -2,13 +2,23 @@
 
 """Python module for making API requests to PWNDB"""
 
-import re
-import time
-import json
-import requests
+# Used for scripts arguments and tool description
 import argparse
+from argparse import RawTextHelpFormatter
+
+# Used in script loading animation
 import itertools
 import threading
+import time
+
+# Used in request response parsing
+import json
+
+# Used to check email input
+import re
+
+# Used to request pwndb URL
+import requests
 
 # Declaring the colors available for the program's console output when running
 DEBUG = '\033[95m'
@@ -26,6 +36,7 @@ DOMAIN = None
 PASSWORD = None
 
 PROXY = "http://127.0.0.1:9050"
+WITHOUT_PROXY = False
 PWNDB_URL = "http://pwndb2am4tzkvold.onion/"
 
 
@@ -62,12 +73,30 @@ def loading_animation():
 def argument_parser():
     """"Parse argument provided to the script"""
 
-    parser = argparse.ArgumentParser(description='Pwndb API')
-    parser.add_argument("--email", help="email to send to pwndb")
-    parser.add_argument("--domain", type=str, help="Search with just email domain")
-    parser.add_argument("--localpart", type=str, help="Search with just email localpart")
-    parser.add_argument("--password", type=str, help="Search with just a password")
-    parser.add_argument("-p", "--proxy", type=str, help="Tor proxy URL to use (default: http://127.0.0.1:9050)")
+    DESCRIPTION = """
+    Pwndb API\n\n
+
+    You can use '%' as wildcard in your request.
+    """
+
+    parser = argparse.ArgumentParser(description=DESCRIPTION, formatter_class=RawTextHelpFormatter)
+    parser.add_argument("--email",
+                        help="email to send to pwndb")
+    parser.add_argument("--domain",
+                        type=str,
+                        help="Search with just email domain")
+    parser.add_argument("--localpart",
+                        type=str,
+                        help="Search with just email localpart")
+    parser.add_argument("--password",
+                        type=str,
+                        help="Search with just a password")
+    parser.add_argument("-p", "--proxy",
+                        type=str,
+                        help="Tor proxy URL to use (default: http://127.0.0.1:9050)")
+    parser.add_argument("--without_proxy",
+                        action="store_true",
+                        help="Launch app in a tor proxyfied network")
     args = parser.parse_args()
 
     if args.email and not args.password and not args.localpart and not args.domain:
@@ -94,13 +123,15 @@ def argument_parser():
         global PROXY
         PROXY = args.proxy
 
+    if args.without_proxy:
+        global WITHOUT_PROXY
+        WITHOUT_PROXY = True
 
-def email_request():
+
+def email_request(proxy_url):
     """Request with an email"""
 
     global ANIMATION
-
-    proxy_url = {"http": PROXY}
 
     email_regex = re.compile(r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)")
 
@@ -116,7 +147,7 @@ def email_request():
     try:
         response = requests.post(PWNDB_URL, proxies=proxy_url, data=data)
     except requests.exceptions.RequestException as request_error:
-        print(error("Problem when sending request to pawndb"))
+        print(error("Problem when sending request to pwndb"))
         print(error(str(request_error)))
         ANIMATION = True
         exit(-1)
@@ -126,12 +157,10 @@ def email_request():
     return response.text
 
 
-def localpart_request():
+def localpart_request(proxy_url):
     """Request with a localpart"""
 
     global ANIMATION
-
-    proxy_url = {"http": PROXY}
 
     data = {'luser': LOCALPART, 'luseropr': 1, 'submitform': 'em'}
 
@@ -151,12 +180,10 @@ def localpart_request():
     return response.text
 
 
-def domain_request():
+def domain_request(proxy_url):
     """Request with a localpart"""
 
     global ANIMATION
-
-    proxy_url = {"http": PROXY}
 
     data = {'domain': DOMAIN, 'domainopr': 1, 'submitform': 'em'}
 
@@ -176,12 +203,10 @@ def domain_request():
     return response.text
 
 
-def password_request():
+def password_request(proxy_url):
     """Request with a password"""
 
     global ANIMATION
-
-    proxy_url = {"http": PROXY}
 
     data = {'password': PASSWORD, 'submitform': 'pw'}
 
@@ -228,14 +253,19 @@ def main():
 
     argument_parser()
 
+    if WITHOUT_PROXY:
+        proxy_url = None
+    else:
+        proxy_url = {"http": PROXY}
+
     if EMAIL:
-        response = email_request()
+        response = email_request(proxy_url)
     elif PASSWORD:
-        response = password_request()
+        response = password_request(proxy_url)
     elif LOCALPART:
-        response = localpart_request()
+        response = localpart_request(proxy_url)
     elif DOMAIN:
-        response = domain_request()
+        response = domain_request(proxy_url)
     else:
         exit(-1)
 
